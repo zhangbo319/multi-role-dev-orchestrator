@@ -1,0 +1,40 @@
+{
+  "workspace_root": "<project>",
+  "runs_root": "<project>/.codex/multi-role-dev/runs",
+  "command_template": [
+    "codex",
+    "exec",
+    "--skip-git-repo-check",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "{workspace}",
+    "-o",
+    "{response_file}",
+    "-"
+  ],
+  "model": "",
+  "sandbox": "workspace-write",
+  "role_overrides": {
+    "product": {
+      "extra_rules": [
+        "必须明确哪些需求属于第一版，哪些属于后续迭代"
+      ]
+    },
+    "architecture": {
+      "extra_rules": [
+        "必须给出模块边界和关键接口"
+      ]
+    },
+    "development": {
+      "extra_rules": [
+        "必须给出建议文件路径和开发顺序"
+      ]
+    },
+    "testing": {
+      "extra_rules": [
+        "必须覆盖异常场景和回归策略"
+      ]
+    }
+  }
+}
