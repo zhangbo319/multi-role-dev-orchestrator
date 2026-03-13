@@ -44,7 +44,17 @@ ROLE_EXPECTATIONS = {
 }
 
 
-def load_config(config_path):
+def default_runs_root(project_root):
+    return Path(project_root).resolve() / ".codex" / "multi-role-dev" / "runs"
+
+
+def resolve_project_root(runtime_project_root=None):
+    if runtime_project_root is None:
+        return Path.cwd().resolve()
+    return Path(runtime_project_root).resolve()
+
+
+def load_config(config_path, runtime_project_root=None):
     config_file = Path(config_path)
     data = json.loads(config_file.read_text(encoding="utf-8"))
     required_keys = ["workspace_root", "runs_root", "command_template"]
@@ -52,9 +62,11 @@ def load_config(config_path):
     if missing:
         raise ValueError("配置缺少字段: {}".format(", ".join(missing)))
 
+    project_root = resolve_project_root(runtime_project_root)
+
     config = {
-        "workspace_root": data["workspace_root"],
-        "runs_root": data["runs_root"],
+        "workspace_root": str(project_root),
+        "runs_root": str(default_runs_root(project_root)),
         "command_template": data["command_template"],
         "model": data.get("model", ""),
         "sandbox": data.get("sandbox", "workspace-write"),
@@ -166,8 +178,15 @@ def execute_role_command(role, prompt_text, output_path, log_path, run_dir, conf
         output_file.write_text(completed.stdout, encoding="utf-8")
 
 
-def orchestrate(request_text, config_path, run_id=None, dry_run=False, execute_role_fn=None):
-    config = load_config(config_path)
+def orchestrate(
+    request_text,
+    config_path,
+    run_id=None,
+    dry_run=False,
+    execute_role_fn=None,
+    project_root=None,
+):
+    config = load_config(config_path, runtime_project_root=project_root)
     run_id = run_id or default_run_id()
     run_dir = Path(config["runs_root"]) / run_id
     prompts_dir = run_dir / "prompts"

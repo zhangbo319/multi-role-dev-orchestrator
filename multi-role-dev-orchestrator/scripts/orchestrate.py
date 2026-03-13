@@ -11,6 +11,10 @@ def parse_args():
     parser.add_argument("--request-file", help="需求文件路径")
     parser.add_argument("--request", help="直接传入需求文本")
     parser.add_argument("--run-id", help="指定运行 ID")
+    parser.add_argument(
+        "--project-root",
+        help="显式指定项目根目录；默认使用执行命令时的当前工作目录",
+    )
     parser.add_argument("--dry-run", action="store_true", help="只生成提示词与目录")
     return parser.parse_args()
 
@@ -29,6 +33,7 @@ def main():
         config_path=args.config,
         run_id=args.run_id,
         dry_run=args.dry_run,
+        project_root=args.project_root,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

@@ -28,6 +28,13 @@ class SkillDocsTest(unittest.TestCase):
         self.assertIn("<project>", config_example)
         self.assertIn(".codex/multi-role-dev/runs", config_example)
 
+    def test_docs_mention_current_workdir_priority(self):
+        readme = (ROOT_DIR.parent / "README.md").read_text(encoding="utf-8")
+        skill_doc = (ROOT_DIR / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("默认以执行命令时的当前工作目录作为项目根目录和产物输出目录", readme)
+        self.assertIn("默认以执行命令时的当前工作目录作为项目根目录和产物输出目录", skill_doc)
+
 
 if __name__ == "__main__":
     unittest.main()

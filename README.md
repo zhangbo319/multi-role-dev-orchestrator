@@ -120,6 +120,18 @@ python3 ~/.codex/skills/multi-role-dev-orchestrator/scripts/init_project.py \
 <project>/.codex/multi-role-dev/config.json
 ```
 
+初始化脚本只负责生成默认配置。真正执行编排时，默认以执行命令时的当前工作目录作为项目根目录和产物输出目录；如果你在别的目录执行 `orchestrate.py`，产物会落到那个目录下的 `.codex/multi-role-dev/runs/`。
+
+如果你需要显式覆盖当前工作目录，可以传入：
+
+```bash
+python3 ~/.codex/skills/multi-role-dev-orchestrator/scripts/orchestrate.py \
+  --config /path/to/config.json \
+  --project-root /path/to/project \
+  --request "请为一个直播平台设计多角色协同开发方案" \
+  --dry-run
+```
+
 建议先跑一次 `dry-run`：
 
 ```bash
