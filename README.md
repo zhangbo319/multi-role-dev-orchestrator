@@ -46,6 +46,65 @@ python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-githu
 
 安装完成后，重启 Codex 以加载新 skill。
 
+## 卸载 / 升级 / 重新安装
+
+### 卸载
+
+删除已安装的 skill 目录：
+
+```bash
+rm -rf ~/.codex/skills/multi-role-dev-orchestrator
+```
+
+你也可以直接在 Codex 对话里下达这条指令：
+
+```text
+请删除 ~/.codex/skills/multi-role-dev-orchestrator，并提醒我重启 Codex
+```
+
+删除完成后，重启 Codex 以移除这个 skill。
+
+### 重新安装
+
+当本地安装损坏、需要强制覆盖，或想重新走一次完整安装链路时，推荐先卸载再安装：
+
+```bash
+rm -rf ~/.codex/skills/multi-role-dev-orchestrator
+bash scripts/install-codex-skill.sh
+```
+
+你也可以直接在 Codex 对话里下达这条指令：
+
+```text
+请先删除 ~/.codex/skills/multi-role-dev-orchestrator，再执行 `bash scripts/install-codex-skill.sh` 重新安装这个 skill
+```
+
+重新安装完成后，重启 Codex 以加载最新版本。
+
+### 升级
+
+当前推荐把“升级”视为“安装仓库最新版本”：
+
+1. 先拉取这个仓库的最新代码
+2. 删除本地已安装的旧版本 skill
+3. 重新执行安装脚本
+
+示例命令：
+
+```bash
+git pull
+rm -rf ~/.codex/skills/multi-role-dev-orchestrator
+bash scripts/install-codex-skill.sh
+```
+
+你也可以直接在 Codex 对话里下达这条指令：
+
+```text
+请先拉取当前仓库最新代码，再删除 ~/.codex/skills/multi-role-dev-orchestrator，并执行 `bash scripts/install-codex-skill.sh` 完成升级
+```
+
+升级完成后，重启 Codex 以加载最新版本。
+
 ## 使用
 
 在任意项目根目录初始化配置：
