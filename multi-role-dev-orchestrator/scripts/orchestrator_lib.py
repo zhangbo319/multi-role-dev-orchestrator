@@ -1,19 +1,31 @@
 import json
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
 
 ROLE_SEQUENCE = ["product", "architecture", "development", "testing"]
 
+DEFAULT_ROLE_GRAPH = {
+    "product": {"depends_on": []},
+    "architecture": {"depends_on": ["product"]},
+    "development": {"depends_on": ["product", "architecture"]},
+    "testing": {"depends_on": ["product", "architecture"]},
+    "synthesis": {
+        "depends_on": ["product", "architecture", "development", "testing"]
+    },
+}
+
 ROLE_LABELS = {
     "product": "产品",
     "architecture": "架构",
     "development": "开发",
     "testing": "测试",
+    "synthesis": "汇总",
 }
 
-ROLE_DEPENDENCIES = {
+LEGACY_ROLE_DEPENDENCIES = {
     "product": [],
     "architecture": ["product"],
     "development": ["product", "architecture"],
@@ -41,6 +53,11 @@ ROLE_EXPECTATIONS = {
         "输出关键测试场景",
         "输出结论与回归建议",
     ],
+    "synthesis": [
+        "汇总所有角色的关键结论",
+        "识别冲突和未决问题",
+        "输出最终建议与下一步行动",
+    ],
 }
 
 
@@ -52,6 +69,64 @@ def resolve_project_root(runtime_project_root=None):
     if runtime_project_root is None:
         return Path.cwd().resolve()
     return Path(runtime_project_root).resolve()
+
+
+def normalize_roles_config(raw_roles):
+    if raw_roles is None:
+        return {
+            role: {"depends_on": list(spec["depends_on"])}
+            for role, spec in DEFAULT_ROLE_GRAPH.items()
+        }
+
+    if isinstance(raw_roles, list):
+        normalized = {}
+        for role in raw_roles:
+            normalized[role] = {
+                "depends_on": list(LEGACY_ROLE_DEPENDENCIES.get(role, []))
+            }
+        return normalized
+
+    if isinstance(raw_roles, dict):
+        normalized = {}
+        for role, spec in raw_roles.items():
+            if isinstance(spec, dict):
+                normalized[role] = {
+                    **spec,
+                    "depends_on": list(spec.get("depends_on", [])),
+                }
+            else:
+                normalized[role] = {"depends_on": list(spec or [])}
+        return normalized
+
+    raise ValueError("roles 配置必须为数组或对象")
+
+
+def validate_roles_config(roles_config):
+    for role, spec in roles_config.items():
+        for dependency in spec.get("depends_on", []):
+            if dependency not in roles_config:
+                raise ValueError("角色 {} 依赖了未定义角色 {}".format(role, dependency))
+
+
+def build_execution_stages(roles_config):
+    validate_roles_config(roles_config)
+    pending = {
+        role: set(spec.get("depends_on", [])) for role, spec in roles_config.items()
+    }
+    remaining = list(roles_config.keys())
+    stages = []
+
+    while remaining:
+        stage = [role for role in remaining if not pending[role]]
+        if not stage:
+            raise ValueError("角色依赖图存在循环，无法生成执行阶段")
+        stages.append(stage)
+        for role in stage:
+            remaining.remove(role)
+        for role in remaining:
+            pending[role].difference_update(stage)
+
+    return stages
 
 
 def load_config(config_path, runtime_project_root=None):
@@ -70,7 +145,7 @@ def load_config(config_path, runtime_project_root=None):
         "command_template": data["command_template"],
         "model": data.get("model", ""),
         "sandbox": data.get("sandbox", "workspace-write"),
-        "roles": data.get("roles", ROLE_SEQUENCE),
+        "roles": normalize_roles_config(data.get("roles")),
         "role_overrides": data.get("role_overrides", {}),
     }
     return config
@@ -80,10 +155,17 @@ def render_command(template, variables):
     return [part.format(**variables) for part in template]
 
 
-def build_role_prompt(role, request_text, artifact_paths, output_path, role_overrides=None):
+def build_role_prompt(
+    role,
+    request_text,
+    artifact_paths,
+    output_path,
+    roles_config,
+    role_overrides=None,
+):
     role_overrides = role_overrides or {}
     label = ROLE_LABELS[role]
-    dependencies = ROLE_DEPENDENCIES[role]
+    dependencies = roles_config[role].get("depends_on", [])
     expectations = ROLE_EXPECTATIONS[role]
     extra_rules = role_overrides.get(role, {}).get("extra_rules", [])
 
@@ -199,41 +281,60 @@ def orchestrate(
 
     (run_dir / "request.md").write_text(request_text + "\n", encoding="utf-8")
 
+    role_names = list(config["roles"].keys())
+    execution_stages = build_execution_stages(config["roles"])
     artifact_paths = {
-        role: str(outputs_dir / "{}.md".format(role)) for role in config["roles"]
+        role: str(outputs_dir / "{}.md".format(role)) for role in role_names
     }
     manifest = {
         "run_id": run_id,
         "run_dir": str(run_dir),
         "workspace_root": config["workspace_root"],
         "status": "initialized",
-        "roles": config["roles"],
+        "roles": role_names,
+        "execution_stages": execution_stages,
         "artifacts": artifact_paths,
+        "role_status": {role: "pending" for role in role_names},
     }
 
     role_runner = execute_role_fn or execute_role_command
-    for role in config["roles"]:
+    prompt_texts = {}
+    for role in role_names:
         prompt_text = build_role_prompt(
             role=role,
             request_text=request_text,
             artifact_paths=artifact_paths,
             output_path=artifact_paths[role],
+            roles_config=config["roles"],
             role_overrides=config["role_overrides"],
         )
+        prompt_texts[role] = prompt_text
         prompt_path = prompts_dir / "{}.prompt.md".format(role)
         prompt_path.write_text(prompt_text, encoding="utf-8")
+        manifest["role_status"][role] = "prompted"
 
-        if dry_run:
-            continue
+    if not dry_run:
+        for stage in execution_stages:
+            futures = {}
+            with ThreadPoolExecutor(max_workers=len(stage)) as executor:
+                for role in stage:
+                    manifest["role_status"][role] = "running"
+                    futures[
+                        executor.submit(
+                            role_runner,
+                            role=role,
+                            prompt_text=prompt_texts[role],
+                            output_path=artifact_paths[role],
+                            log_path=str(logs_dir / "{}.log".format(role)),
+                            run_dir=run_dir,
+                            config=config,
+                        )
+                    ] = role
 
-        role_runner(
-            role=role,
-            prompt_text=prompt_text,
-            output_path=artifact_paths[role],
-            log_path=str(logs_dir / "{}.log".format(role)),
-            run_dir=run_dir,
-            config=config,
-        )
+                for future in as_completed(futures):
+                    role = futures[future]
+                    future.result()
+                    manifest["role_status"][role] = "completed"
 
     manifest["status"] = "dry-run" if dry_run else "completed"
     write_json(run_dir / "run.json", manifest)

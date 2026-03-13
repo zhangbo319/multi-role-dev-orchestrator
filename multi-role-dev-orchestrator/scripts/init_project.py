@@ -26,6 +26,23 @@ def build_default_config(project_root):
         ],
         "model": "",
         "sandbox": "workspace-write",
+        "roles": {
+            "product": {
+                "depends_on": []
+            },
+            "architecture": {
+                "depends_on": ["product"]
+            },
+            "development": {
+                "depends_on": ["product", "architecture"]
+            },
+            "testing": {
+                "depends_on": ["product", "architecture"]
+            },
+            "synthesis": {
+                "depends_on": ["product", "architecture", "development", "testing"]
+            },
+        },
         "role_overrides": {
             "product": {
                 "extra_rules": [
@@ -45,6 +62,11 @@ def build_default_config(project_root):
             "testing": {
                 "extra_rules": [
                     "必须覆盖异常场景和回归策略"
+                ]
+            },
+            "synthesis": {
+                "extra_rules": [
+                    "必须汇总所有角色结论并标记冲突项"
                 ]
             },
         },
