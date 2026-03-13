@@ -1,6 +1,6 @@
 # multi-role-dev-orchestrator
 
-一个面向 Codex 的多角色研发编排 skill 仓库。仓库内的实际 skill 位于 `multi-role-dev-orchestrator/` 目录，可通过私有 GitHub 仓库安装到 `~/.codex/skills/`。
+一个面向 Codex 的多角色研发编排 skill 仓库。仓库内的实际 skill 位于 `multi-role-dev-orchestrator/` 目录，可通过私有 GitHub 仓库安装到 `~/.codex/skills/`。默认模型为 `product -> architecture -> (development, testing) -> synthesis`，由编排器按依赖图分层执行，并在同一层内并行运行多个 Agent。
 
 ## 安装
 
@@ -132,6 +132,14 @@ python3 ~/.codex/skills/multi-role-dev-orchestrator/scripts/orchestrate.py \
   --dry-run
 ```
 
+默认 DAG 模型为：
+
+```text
+product -> architecture -> (development, testing) -> synthesis
+```
+
+其中 `development` 和 `testing` 会在同一阶段并行执行，最后由 `synthesis` 汇总所有角色结论。
+
 建议先跑一次 `dry-run`：
 
 ```bash
@@ -145,7 +153,7 @@ python3 ~/.codex/skills/multi-role-dev-orchestrator/scripts/orchestrate.py \
 推荐显式触发短语：
 
 ```text
-使用 $multi-role-dev-orchestrator 为当前需求建立四角色串行研发流程
+使用 $multi-role-dev-orchestrator 为当前需求建立 DAG 并行多 Agent 研发流程
 ```
 
 为了避免和其它 skill 冲突，进入本 skill 后不要混用开放式头脑风暴或自由多 agent 讨论。

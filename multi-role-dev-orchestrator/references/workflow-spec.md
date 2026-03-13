@@ -13,32 +13,37 @@
     architecture.prompt.md
     development.prompt.md
     testing.prompt.md
+    synthesis.prompt.md
   outputs/
     product.md
     architecture.md
     development.md
     testing.md
+    synthesis.md
   logs/
     product.log
     architecture.log
     development.log
     testing.log
+    synthesis.log
 ```
 
 ## 角色流转顺序
 
-固定顺序：
+默认 DAG：
 
-1. `product`
-2. `architecture`
-3. `development`
-4. `testing`
+```text
+product -> architecture -> (development, testing) -> synthesis
+```
 
 其中：
 
 - `architecture` 依赖 `product`
 - `development` 依赖 `product` 和 `architecture`
-- `testing` 依赖前三者
+- `testing` 依赖 `product` 和 `architecture`
+- `synthesis` 依赖 `product`、`architecture`、`development`、`testing`
+
+同一层中的多个角色会并行执行。
 
 ## 配置要求
 
@@ -63,6 +68,11 @@
 - `roles`
 - `role_overrides`
 
+`roles` 支持两种形式：
+
+- legacy 数组：`["product", "architecture", "development", "testing"]`
+- DAG 对象：键为角色名，值为 `{ "depends_on": [...] }`
+
 ## 命令模板占位符
 
 `command_template` 支持以下占位符：
@@ -76,6 +86,6 @@
 
 ## 失败处理
 
-- 某角色执行失败时立即停止
+- 某角色执行失败时立即停止后续阶段
 - 已生成产物和日志应保留
 - 修改配置或上游产物后可重新执行同一 `run-id`

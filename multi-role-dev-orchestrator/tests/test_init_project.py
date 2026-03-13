@@ -30,6 +30,13 @@ class InitProjectTest(unittest.TestCase):
                 str((project_root / ".codex" / "multi-role-dev" / "runs").resolve()),
             )
             self.assertEqual(payload["sandbox"], "workspace-write")
+            self.assertIn("roles", payload)
+            self.assertIn("synthesis", payload["roles"])
+            self.assertEqual(
+                payload["roles"]["testing"]["depends_on"],
+                ["product", "architecture"],
+            )
+            self.assertIn("synthesis", payload["role_overrides"])
             self.assertIn("{workspace}", payload["command_template"])
             self.assertIn("{response_file}", payload["command_template"])
 

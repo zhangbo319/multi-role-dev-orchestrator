@@ -17,7 +17,7 @@ class SkillDocsTest(unittest.TestCase):
         agent_yaml = (ROOT_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
 
         self.assertIn("使用 $multi-role-dev-orchestrator", agent_yaml)
-        self.assertIn("四角色串行研发流程", agent_yaml)
+        self.assertIn("DAG 并行多 Agent 研发流程", agent_yaml)
         self.assertIn("避免切换到其它 skill", agent_yaml)
 
     def test_config_example_uses_project_relative_placeholder(self):
@@ -34,6 +34,23 @@ class SkillDocsTest(unittest.TestCase):
 
         self.assertIn("默认以执行命令时的当前工作目录作为项目根目录和产物输出目录", readme)
         self.assertIn("默认以执行命令时的当前工作目录作为项目根目录和产物输出目录", skill_doc)
+
+    def test_docs_mention_dag_parallel_model(self):
+        readme = (ROOT_DIR.parent / "README.md").read_text(encoding="utf-8")
+        skill_doc = (ROOT_DIR / "SKILL.md").read_text(encoding="utf-8")
+        workflow_spec = (ROOT_DIR / "references" / "workflow-spec.md").read_text(encoding="utf-8")
+        role_definitions = (ROOT_DIR / "references" / "role-definitions.md").read_text(
+            encoding="utf-8"
+        )
+        config_example = (ROOT_DIR / "references" / "config-example.json").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("product -> architecture -> (development, testing) -> synthesis", readme)
+        self.assertIn("product -> architecture -> (development, testing) -> synthesis", skill_doc)
+        self.assertIn("synthesis", workflow_spec)
+        self.assertIn("汇总", role_definitions)
+        self.assertIn("\"synthesis\"", config_example)
 
 
 if __name__ == "__main__":
