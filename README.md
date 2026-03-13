@@ -10,7 +10,32 @@
 - 机器对私有 GitHub 仓库有读取权限
 - 已配置可用的 `git` 凭证，或可通过 `GITHUB_TOKEN` / `GH_TOKEN` 访问
 
-安装命令：
+### 方式一：直接让 Codex 一键执行安装脚本
+
+如果你已经把这个仓库拉到本地，推荐直接让 Codex 在仓库根目录执行：
+
+```bash
+bash scripts/install-codex-skill.sh
+```
+
+你也可以直接在 Codex 对话里下达这条指令：
+
+```text
+请在当前仓库根目录执行 `bash scripts/install-codex-skill.sh`，把 multi-role-dev-orchestrator 安装到 ~/.codex/skills
+```
+
+这个脚本会自动调用 Codex 自带的 `skill-installer`：
+
+- 未安装时执行真实安装
+- 已安装时直接返回成功，避免重复报错
+
+脚本位置：
+
+[`scripts/install-codex-skill.sh`](/Users/zhangbo/work/INKE/codex/multi-role-dev-orchestrator/scripts/install-codex-skill.sh)
+
+### 方式二：直接执行单条安装命令
+
+如果你不想依赖仓库脚本，也可以直接执行下面这一条命令：
 
 ```bash
 python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
